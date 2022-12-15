@@ -1,44 +1,32 @@
 from rest_framework import serializers
-from rest_framework.relations import PrimaryKeyRelatedField
 
 from ads.models import Ad, Comment
-from users.models import User
-from users.serializers import CurrentUserSerializer
 
 
 class CommentSerializer(serializers.ModelSerializer):
+    author_first_name = serializers.CharField(max_length=50, source="author.first_name", required=False)
+    author_last_name = serializers.CharField(max_length=50, source="author.last_name", required=False)
+    author_image = serializers.ImageField(source="author.image", required=False)
+
     class Meta:
         model = Comment
-        fields = '__all__'
+        fields = ["pk", "text", "author_id", "created_at", "author_first_name", "author_last_name", "ad_id",
+                  "author_image"]
 
 
 class AdSerializer(serializers.ModelSerializer):
-    # author = serializers.PrimaryKeyRelatedField(read_only=True)
-    # author = serializers.SerializerMethodField('_user')
-    #
-    # def _user(self, obj):
-    #     request = self.context.get('request', None)
-    #     if request:
-    #         return request.user
-
     class Meta:
         model = Ad
-        fields = ["pk", "image", "title", "price", "description", "author"]
-
-    def create(self, request, *args, **kwargs):
-        user = self.context['request'].user
-        data = request.POST
-        data["author"] = user
-        return super().create(validated_data=data)
+        fields = ["pk", "image", "title", "price", "description"]
 
 
 class AdDetailSerializer(serializers.ModelSerializer):
+    pk = serializers.IntegerField(read_only=True)
+    phone = serializers.CharField(source="author.phone", required=False)
+    author_first_name = serializers.CharField(max_length=50, source="author.first_name", required=False)
+    author_last_name = serializers.CharField(max_length=50, source="author.last_name", required=False)
+
     class Meta:
         model = Ad
-        fields = '__all__'
-
-    author = serializers.ReadOnlyField()
-
-    def create(self, validated_data):
-        validated_data['author'] = self.context['request'].user
-        return super(AdDetailSerializer, self).create(validated_data)
+        fields = ["pk", "image", "title", "price", "description", "author_id", "phone", "author_first_name",
+                  "author_last_name"]

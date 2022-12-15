@@ -4,6 +4,7 @@ from rest_framework.decorators import action
 
 from ads.filters import AdFilter
 from ads.models import Ad, Comment
+from ads.permissions import UserPermission
 from ads.serializers import AdSerializer, CommentSerializer, AdDetailSerializer
 
 
@@ -13,10 +14,23 @@ class AdPagination(pagination.PageNumberPagination):
 
 class AdViewSet(viewsets.ModelViewSet):
     queryset = Ad.objects.all()
-    serializer_class = AdSerializer
     pagination_class = AdPagination
     filter_backends = (DjangoFilterBackend,)
     filterset_class = AdFilter
+    serializer_class = AdSerializer
+    serializers_by_action = {
+        "create": AdDetailSerializer,
+        "retrieve": AdDetailSerializer,
+    }
+
+    def get_serializer_class(self):
+        try:
+            return self.serializers_by_action[self.action]
+        except (KeyError, AttributeError):
+            return super().get_serializer_class()
+
+    def perform_create(self, serializer):
+        serializer.save(author=self.request.user)
 
     def get_queryset(self):
         if self.action == "me":
@@ -25,8 +39,10 @@ class AdViewSet(viewsets.ModelViewSet):
 
     @property
     def get_permissions(self):
-        if self.action in ["list", "retrieve", "create", "me"]:
-            self.permission_classes = [permissions.IsAuthenticated, ]
+        if self.action == "list":
+            self.permission_classes = [permissions.IsAuthenticatedOrReadOnly, ]
+        elif self.action in ["retrieve", "create", "me", "partial_update", "destroy"]:
+            self.permission_classes = [permissions.IsAuthenticated, UserPermission]
         else:
             self.permission_classes = [permissions.IsAdminUser, ]
         return super().get_permissions
@@ -39,3 +55,20 @@ class AdViewSet(viewsets.ModelViewSet):
 class CommentViewSet(viewsets.ModelViewSet):
     queryset = Comment.objects.all()
     serializer_class = CommentSerializer
+
+    def get_queryset(self):
+        if self.request.method == "GET":
+            return Comment.objects.filter(ad_id=self.kwargs["ad_pk"])
+
+    def perform_create(self, serializer):
+        serializer.save(author=self.request.user, ad_id=self.kwargs["ad_pk"])
+
+    @property
+    def get_permissions(self):
+        if self.action == "list":
+            self.permission_classes = [permissions.IsAuthenticatedOrReadOnly, ]
+        elif self.action in ["retrieve", "create", "me", "partial_update", "destroy"]:
+            self.permission_classes = [permissions.IsAuthenticated, UserPermission]
+        else:
+            self.permission_classes = [permissions.IsAdminUser, ]
+        return super().get_permissions

@@ -1,14 +1,14 @@
 from django.urls import path, include
-from rest_framework import routers
+from rest_framework_nested import routers
 
 from ads.views import AdViewSet, CommentViewSet
 
-# TODO настройка роутов для модели
-router = routers.SimpleRouter()
-router.register('ads', AdViewSet)
-router.register('ad/<int:ad_id>/comment', CommentViewSet)
-
+ads_router = routers.SimpleRouter()
+ads_router.register('ads', AdViewSet)
+comments_router = routers.NestedSimpleRouter(ads_router, "ads", lookup="ad")
+comments_router.register('comments', CommentViewSet)
 
 urlpatterns = [
-    path('', include(router.urls)),
+    path('', include(ads_router.urls)),
+    path('', include(comments_router.urls)),
 ]

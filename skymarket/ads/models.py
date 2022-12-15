@@ -15,7 +15,7 @@ class Ad(models.Model):
     image = models.ImageField(upload_to=MEDIA_ROOT, null=True, blank=True)
 
     class Meta:
-        ordering = ["created_at"]
+        ordering = ["-created_at"]
 
 
 class Comment(models.Model):
