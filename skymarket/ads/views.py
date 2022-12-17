@@ -59,6 +59,7 @@ class CommentViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         if self.request.method == "GET":
             return Comment.objects.filter(ad_id=self.kwargs["ad_pk"])
+        return Comment.objects.all()
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user, ad_id=self.kwargs["ad_pk"])
